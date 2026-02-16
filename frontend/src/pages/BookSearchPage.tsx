@@ -1,27 +1,24 @@
 import { useCallback, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, BookOpen, BookCheck, BookX, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus } from "lucide-react";
 import { searchBooks } from "@/lib/api";
 import type { BookSearchFilters, CanonStatus, ReadingStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { CanonLegendToggle } from "@/components/filters/CanonLegendToggle";
+import { ReadingStatusToggle } from "@/components/filters/ReadingStatusToggle";
+import { SortControls } from "@/components/filters/SortControls";
+import { YearRangeFilter } from "@/components/filters/YearRangeFilter";
+import { Pagination } from "@/components/filters/Pagination";
+import { BookCard } from "@/components/BookCard";
 
-const STATUS_ICONS = {
-  unread: BookX,
-  reading: BookOpen,
-  read: BookCheck,
-};
+const BOOK_SORT_OPTIONS = [
+  { value: "title", label: "Title" },
+  { value: "timeline_year", label: "Timeline" },
+  { value: "publication_date", label: "Published" },
+];
 
 export function BookSearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -93,7 +90,7 @@ export function BookSearchPage() {
         </Link>
       </div>
 
-      {/* Filters */}
+      {/* Text filters */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Input
           placeholder="Search title or description..."
@@ -115,171 +112,57 @@ export function BookSearchPage() {
         />
       </div>
 
+      {/* Toggle + sort filters */}
       <div className="flex flex-wrap items-center gap-3">
-        {/* Canon / Legends filter */}
-        <div className="flex rounded-md border overflow-hidden">
-          <button
-            className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-              filters.canon_status === "canon"
-                ? "bg-primary text-primary-foreground"
-                : "bg-background text-muted-foreground hover:bg-muted"
-            }`}
-            onClick={() => setFilter("canon_status", filters.canon_status === "canon" ? undefined : "canon")}
-          >
-            Canon
-          </button>
-          <button
-            className={`px-3 py-1.5 text-sm font-medium border-l transition-colors ${
-              filters.canon_status === "legends"
-                ? "bg-primary text-primary-foreground"
-                : "bg-background text-muted-foreground hover:bg-muted"
-            }`}
-            onClick={() => setFilter("canon_status", filters.canon_status === "legends" ? undefined : "legends")}
-          >
-            Legends
-          </button>
-        </div>
-
-        {/* Reading status filter */}
-        <div className="flex rounded-md border overflow-hidden">
-          {(["unread", "reading", "read"] as const).map((status, i) => (
-            <button
-              key={status}
-              className={`px-3 py-1.5 text-sm font-medium capitalize transition-colors ${i > 0 ? "border-l" : ""} ${
-                filters.reading_status === status
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-background text-muted-foreground hover:bg-muted"
-              }`}
-              onClick={() => setFilter("reading_status", filters.reading_status === status ? undefined : status)}
-            >
-              {status}
-            </button>
-          ))}
-        </div>
-
-        <Select
-          value={filters.order_by}
-          onValueChange={(v) => setFilter("order_by", v)}
-        >
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="title">Title</SelectItem>
-            <SelectItem value="timeline_year">Timeline</SelectItem>
-            <SelectItem value="publication_date">Published</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={filters.order_dir}
-          onValueChange={(v) => setFilter("order_dir", v)}
-        >
-          <SelectTrigger className="w-[100px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="asc">Asc</SelectItem>
-            <SelectItem value="desc">Desc</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Timeline year filter with BBY/ABY selectors */}
-        <div className="flex items-center gap-2">
-          <div className="flex">
-            <Input
-              type="number"
-              min={0}
-              placeholder="From"
-              className="w-[80px] rounded-r-none"
-              defaultValue={
-                filters.timeline_year_min !== undefined
-                  ? Math.abs(filters.timeline_year_min)
-                  : ""
+        <CanonLegendToggle
+          value={filters.canon_status}
+          onChange={(v) => setFilter("canon_status", v)}
+        />
+        <ReadingStatusToggle
+          value={filters.reading_status}
+          onChange={(v) => setFilter("reading_status", v)}
+        />
+        <SortControls
+          orderBy={filters.order_by!}
+          orderDir={filters.order_dir!}
+          onOrderByChange={(v) => setFilter("order_by", v)}
+          onOrderDirChange={(v) => setFilter("order_dir", v)}
+          sortOptions={BOOK_SORT_OPTIONS}
+        />
+        <YearRangeFilter
+          yearMin={filters.timeline_year_min}
+          yearMax={filters.timeline_year_max}
+          eraMin={searchParams.get("era_min") || "BBY"}
+          eraMax={searchParams.get("era_max") || "ABY"}
+          onYearMinChange={(v) => setFilter("timeline_year_min", v !== undefined ? String(v) : undefined)}
+          onYearMaxChange={(v) => setFilter("timeline_year_max", v !== undefined ? String(v) : undefined)}
+          onEraMinChange={(era) => {
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.set("era_min", era);
+              const raw = prev.get("timeline_year_min");
+              if (raw) {
+                const num = Math.abs(Number(raw));
+                next.set("timeline_year_min", String(era === "BBY" ? -num : num));
+                next.set("page", "1");
               }
-              onChange={(e) => {
-                const raw = e.target.value;
-                if (!raw) {
-                  setFilter("timeline_year_min", undefined);
-                  return;
-                }
-                const num = Number(raw);
-                const era = searchParams.get("era_min") || "BBY";
-                setFilter("timeline_year_min", String(era === "BBY" ? -num : num));
-              }}
-            />
-            <Select
-              value={searchParams.get("era_min") || "BBY"}
-              onValueChange={(era) => {
-                const raw = searchParams.get("timeline_year_min");
-                if (raw) {
-                  const num = Math.abs(Number(raw));
-                  setFilter("timeline_year_min", String(era === "BBY" ? -num : num));
-                }
-                setSearchParams((prev) => {
-                  const next = new URLSearchParams(prev);
-                  next.set("era_min", era);
-                  return next;
-                });
-              }}
-            >
-              <SelectTrigger className="w-[80px] rounded-l-none border-l-0">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="BBY">BBY</SelectItem>
-                <SelectItem value="ABY">ABY</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <span className="text-muted-foreground">to</span>
-          <div className="flex">
-            <Input
-              type="number"
-              min={0}
-              placeholder="To"
-              className="w-[80px] rounded-r-none"
-              defaultValue={
-                filters.timeline_year_max !== undefined
-                  ? Math.abs(filters.timeline_year_max)
-                  : ""
+              return next;
+            });
+          }}
+          onEraMaxChange={(era) => {
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.set("era_max", era);
+              const raw = prev.get("timeline_year_max");
+              if (raw) {
+                const num = Math.abs(Number(raw));
+                next.set("timeline_year_max", String(era === "BBY" ? -num : num));
+                next.set("page", "1");
               }
-              onChange={(e) => {
-                const raw = e.target.value;
-                if (!raw) {
-                  setFilter("timeline_year_max", undefined);
-                  return;
-                }
-                const num = Number(raw);
-                const era = searchParams.get("era_max") || "ABY";
-                setFilter("timeline_year_max", String(era === "BBY" ? -num : num));
-              }}
-            />
-            <Select
-              value={searchParams.get("era_max") || "ABY"}
-              onValueChange={(era) => {
-                const raw = searchParams.get("timeline_year_max");
-                if (raw) {
-                  const num = Math.abs(Number(raw));
-                  setFilter("timeline_year_max", String(era === "BBY" ? -num : num));
-                }
-                setSearchParams((prev) => {
-                  const next = new URLSearchParams(prev);
-                  next.set("era_max", era);
-                  return next;
-                });
-              }}
-            >
-              <SelectTrigger className="w-[80px] rounded-l-none border-l-0">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="BBY">BBY</SelectItem>
-                <SelectItem value="ABY">ABY</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+              return next;
+            });
+          }}
+        />
       </div>
 
       {/* Results */}
@@ -293,77 +176,11 @@ export function BookSearchPage() {
         <>
           <p className="text-sm text-muted-foreground">{data.total} results</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {data.items.map((book) => {
-              const StatusIcon = STATUS_ICONS[book.reading_status];
-              return (
-                <Link key={book.id} to={`/books/${book.id}`}>
-                  <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-                    <CardContent className="p-4 space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="font-semibold leading-tight">{book.title}</h3>
-                        <StatusIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      </div>
-                      {book.author_name && (
-                        <p className="text-sm text-muted-foreground">{book.author_name}</p>
-                      )}
-                      <div className="flex flex-wrap gap-1.5">
-                        <Badge variant={book.canon_or_legends === "canon" ? "default" : "secondary"}>
-                          {book.canon_or_legends}
-                        </Badge>
-                        {book.timeline_year !== null && (
-                          <Badge variant="outline">
-                            {book.timeline_year > 0
-                              ? `${book.timeline_year} ABY`
-                              : `${Math.abs(book.timeline_year)} BBY`}
-                          </Badge>
-                        )}
-                        {book.owned && <Badge variant="outline">Owned</Badge>}
-                      </div>
-                      {book.matched_characters.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {book.matched_characters.slice(0, 5).map((name) => (
-                            <Badge key={name} variant="outline" className="bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30 text-xs">
-                              {name}
-                            </Badge>
-                          ))}
-                          {book.matched_characters.length > 5 && (
-                            <Badge variant="outline" className="text-xs text-muted-foreground">
-                              +{book.matched_characters.length - 5} more
-                            </Badge>
-                          )}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </Link>
-              );
-            })}
+            {data.items.map((book) => (
+              <BookCard key={book.id} book={book} showMatchedCharacters />
+            ))}
           </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={data.page <= 1}
-                onClick={() => setPage(data.page - 1)}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                Page {data.page} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={data.page >= totalPages}
-                onClick={() => setPage(data.page + 1)}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
+          <Pagination page={data.page} totalPages={totalPages} onPageChange={setPage} />
         </>
       ) : (
         <p className="text-muted-foreground text-center py-12">

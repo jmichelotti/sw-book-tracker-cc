@@ -4,6 +4,7 @@ import { BookSearchPage } from "@/pages/BookSearchPage";
 import { BookDetailPage } from "@/pages/BookDetailPage";
 import { BookFormPage } from "@/pages/BookFormPage";
 import { CharactersPage } from "@/pages/CharactersPage";
+import { CharacterDetailPage } from "@/pages/CharacterDetailPage";
 import { SeriesListPage } from "@/pages/SeriesListPage";
 import { SeriesDetailPage } from "@/pages/SeriesDetailPage";
 import { AuthorsListPage } from "@/pages/AuthorsListPage";
@@ -19,6 +20,7 @@ function App() {
         <Route path="/books/:id" element={<BookDetailPage />} />
         <Route path="/books/:id/edit" element={<BookFormPage />} />
         <Route path="/characters" element={<CharactersPage />} />
+        <Route path="/characters/:id" element={<CharacterDetailPage />} />
         <Route path="/series" element={<SeriesListPage />} />
         <Route path="/series/:id" element={<SeriesDetailPage />} />
         <Route path="/authors" element={<AuthorsListPage />} />

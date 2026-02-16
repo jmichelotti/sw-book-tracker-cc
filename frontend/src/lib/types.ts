@@ -79,8 +79,61 @@ export interface Character {
   description: string | null;
 }
 
-export interface CharacterWithBooks extends Character {
-  books: BookBrief[];
+export interface CharacterSearchResult {
+  id: number;
+  name: string;
+  description: string | null;
+  book_count: number;
+}
+
+export interface PaginatedCharacters {
+  items: CharacterSearchResult[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface BookAppearance {
+  id: number;
+  title: string;
+  canon_or_legends: CanonStatus;
+  reading_status: ReadingStatus;
+  owned: boolean;
+  timeline_year: number | null;
+  author_name: string | null;
+  appearance_tag: string | null;
+}
+
+export interface CharacterDetail {
+  id: number;
+  name: string;
+  description: string | null;
+  book_count: number;
+  first_appearance: BookAppearance | null;
+  books: BookAppearance[];
+  books_total: number;
+  books_page: number;
+  books_page_size: number;
+}
+
+export interface CharacterSearchFilters {
+  name?: string;
+  min_book_count?: number;
+  page?: number;
+  page_size?: number;
+  order_by?: string;
+  order_dir?: string;
+}
+
+export interface CharacterBookFilters {
+  canon_status?: CanonStatus;
+  reading_status?: ReadingStatus;
+  timeline_year_min?: number;
+  timeline_year_max?: number;
+  order_by?: string;
+  order_dir?: string;
+  page?: number;
+  page_size?: number;
 }
 
 export interface TagBrief {

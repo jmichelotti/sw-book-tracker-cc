@@ -4,10 +4,11 @@ import type {
   AuthorWithBooks,
   BookRead,
   BookSearchFilters,
-  Character,
-  CharacterWithBooks,
-  NetworkGraph,
+  CharacterBookFilters,
+  CharacterDetail,
+  CharacterSearchFilters,
   PaginatedBooks,
+  PaginatedCharacters,
   Series,
   SeriesWithBooks,
   TagBrief,
@@ -88,18 +89,21 @@ export async function createSeries(series: { name: string; description?: string 
 }
 
 // Characters
-export async function listCharacters(): Promise<Character[]> {
-  const { data } = await api.get("/characters");
+export async function searchCharacters(filters: CharacterSearchFilters): Promise<PaginatedCharacters> {
+  const params = Object.fromEntries(
+    Object.entries(filters).filter(([, v]) => v !== undefined && v !== "")
+  );
+  const { data } = await api.get("/characters/search", { params });
   return data;
 }
 
-export async function getCharacter(id: number): Promise<CharacterWithBooks> {
-  const { data } = await api.get(`/characters/${id}`);
-  return data;
-}
-
-export async function getCharacterNetwork(): Promise<NetworkGraph> {
-  const { data } = await api.get("/characters/network");
+export async function getCharacter(id: number, filters?: CharacterBookFilters): Promise<CharacterDetail> {
+  const params = filters
+    ? Object.fromEntries(
+        Object.entries(filters).filter(([, v]) => v !== undefined && v !== "")
+      )
+    : {};
+  const { data } = await api.get(`/characters/${id}`, { params });
   return data;
 }
 

@@ -12,9 +12,11 @@ from app.schemas.author import AuthorCreate, AuthorRead, AuthorUpdate, AuthorWit
 from app.schemas.series import SeriesCreate, SeriesRead, SeriesWithBooks
 from app.schemas.character import (
     CharacterCreate,
+    CharacterDetail,
+    CharacterDetailParams,
     CharacterRead,
-    CharacterWithBooks,
-    NetworkGraph,
+    CharacterSearchParams,
+    PaginatedCharacters,
 )
 from app.schemas.tag import TagCreate, TagRead
 from app.schemas.ingest import IngestBook, IngestCharacter, IngestResult

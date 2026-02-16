@@ -1,143 +1,158 @@
-import { useRef } from "react";
+import { useCallback, useMemo } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getCharacterNetwork, listCharacters } from "@/lib/api";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { searchCharacters } from "@/lib/api";
+import type { CharacterSearchFilters } from "@/lib/types";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { SortControls } from "@/components/filters/SortControls";
+import { Pagination } from "@/components/filters/Pagination";
+
+const CHARACTER_SORT_OPTIONS = [
+  { value: "name", label: "Name" },
+  { value: "book_count", label: "Book count" },
+];
 
 export function CharactersPage() {
-  const { data: characters, isLoading } = useQuery({
-    queryKey: ["characters"],
-    queryFn: listCharacters,
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const filters: CharacterSearchFilters = useMemo(
+    () => ({
+      name: searchParams.get("name") || undefined,
+      min_book_count: searchParams.get("min_book_count")
+        ? Number(searchParams.get("min_book_count"))
+        : undefined,
+      page: Number(searchParams.get("page") || 1),
+      page_size: 24,
+      order_by: searchParams.get("order_by") || "name",
+      order_dir: searchParams.get("order_dir") || "asc",
+    }),
+    [searchParams]
+  );
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["characters", filters],
+    queryFn: () => searchCharacters(filters),
   });
+
+  const setFilter = useCallback(
+    (key: string, value: string | undefined) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (value) {
+          next.set(key, value);
+        } else {
+          next.delete(key);
+        }
+        next.set("page", "1");
+        return next;
+      });
+    },
+    [setSearchParams]
+  );
+
+  const setPage = useCallback(
+    (page: number) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("page", String(page));
+        return next;
+      });
+    },
+    [setSearchParams]
+  );
+
+  const totalPages = data ? Math.ceil(data.total / data.page_size) : 0;
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Characters</h1>
 
-      <Tabs defaultValue="list">
-        <TabsList>
-          <TabsTrigger value="list">List</TabsTrigger>
-          <TabsTrigger value="network">Network Graph</TabsTrigger>
-        </TabsList>
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Input
+          placeholder="Search by name..."
+          className="w-[250px]"
+          defaultValue={filters.name || ""}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (val.length === 0 || val.length >= 2) setFilter("name", val || undefined);
+          }}
+        />
 
-        <TabsContent value="list">
-          {isLoading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 10 }).map((_, i) => (
-                <Skeleton key={i} className="h-10" />
-              ))}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Description</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {characters?.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-medium">{c.name}</TableCell>
-                    <TableCell className="text-muted-foreground truncate max-w-md">
-                      {c.description || "-"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {characters?.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={2} className="text-center text-muted-foreground">
-                      No characters yet. Run the scraper to populate data.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </TabsContent>
+        {/* Min book count */}
+        <Select
+          value={filters.min_book_count?.toString() || "any"}
+          onValueChange={(v) => setFilter("min_book_count", v === "any" ? undefined : v)}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Book appearances" />
+          </SelectTrigger>
+          <SelectContent position="popper" sideOffset={4}>
+            <SelectItem value="any">Any appearances</SelectItem>
+            <SelectItem value="2">2+ books</SelectItem>
+            <SelectItem value="5">5+ books</SelectItem>
+            <SelectItem value="10">10+ books</SelectItem>
+            <SelectItem value="20">20+ books</SelectItem>
+          </SelectContent>
+        </Select>
 
-        <TabsContent value="network">
-          <NetworkGraphTab />
-        </TabsContent>
-      </Tabs>
+        <SortControls
+          orderBy={filters.order_by!}
+          orderDir={filters.order_dir!}
+          onOrderByChange={(v) => setFilter("order_by", v)}
+          onOrderDirChange={(v) => setFilter("order_dir", v)}
+          sortOptions={CHARACTER_SORT_OPTIONS}
+        />
+      </div>
+
+      {/* Results */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <Skeleton key={i} className="h-28" />
+          ))}
+        </div>
+      ) : data && data.items.length > 0 ? (
+        <>
+          <p className="text-sm text-muted-foreground">{data.total} characters</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {data.items.map((character) => (
+              <Link key={character.id} to={`/characters/${character.id}`}>
+                <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+                  <CardContent className="p-4 space-y-2">
+                    <h3 className="font-semibold leading-tight">{character.name}</h3>
+                    {character.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {character.description}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-1.5">
+                      <Badge variant="outline">
+                        {character.book_count} {character.book_count === 1 ? "book" : "books"}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+          <Pagination page={data.page} totalPages={totalPages} onPageChange={setPage} />
+        </>
+      ) : (
+        <p className="text-muted-foreground text-center py-12">
+          No characters found. Try adjusting your filters.
+        </p>
+      )}
     </div>
-  );
-}
-
-function NetworkGraphTab() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["character-network"],
-    queryFn: getCharacterNetwork,
-  });
-
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  if (isLoading) {
-    return <Skeleton className="h-[500px]" />;
-  }
-
-  if (!data || data.nodes.length === 0) {
-    return (
-      <p className="text-muted-foreground text-center py-12">
-        No network data available. Characters need book associations to form a network.
-      </p>
-    );
-  }
-
-  return (
-    <div ref={containerRef} className="border rounded-lg overflow-hidden" style={{ height: 500 }}>
-      <ForceGraphWrapper data={data} />
-    </div>
-  );
-}
-
-function ForceGraphWrapper({ data }: { data: { nodes: { id: number; name: string; val: number }[]; links: { source: number; target: number; value: number }[] } }) {
-  // Lazy import to avoid SSR issues and keep bundle smaller
-  const { data: ForceGraph } = useQuery({
-    queryKey: ["force-graph-module"],
-    queryFn: async () => {
-      const mod = await import("react-force-graph-2d");
-      return mod.default;
-    },
-    staleTime: Infinity,
-  });
-
-  if (!ForceGraph) return <Skeleton className="h-[500px]" />;
-
-  const FG = ForceGraph;
-
-  return (
-    <FG
-      graphData={data}
-      nodeLabel="name"
-      nodeVal="val"
-      nodeAutoColorBy="id"
-      linkWidth={(link: { value?: number }) => Math.sqrt(link.value ?? 1)}
-      width={800}
-      height={500}
-      nodeCanvasObject={(node: { x?: number; y?: number; name?: string; val?: number; color?: string }, ctx: CanvasRenderingContext2D, globalScale: number) => {
-        const label = node.name || "";
-        const fontSize = Math.max(12 / globalScale, 2);
-        ctx.font = `${fontSize}px Sans-Serif`;
-        ctx.fillStyle = node.color || "#666";
-        ctx.beginPath();
-        const r = Math.sqrt(node.val || 1) * 2;
-        ctx.arc(node.x || 0, node.y || 0, r, 0, 2 * Math.PI);
-        ctx.fill();
-        if (globalScale > 1.5) {
-          ctx.fillStyle = "#fff";
-          ctx.textAlign = "center";
-          ctx.fillText(label, node.x || 0, (node.y || 0) + r + fontSize);
-        }
-      }}
-    />
   );
 }

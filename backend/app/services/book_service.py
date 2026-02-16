@@ -50,20 +50,10 @@ async def search_books(db: AsyncSession, params: BookSearchParams):
         )
 
     if params.timeline_year_min is not None:
-        query = query.where(
-            or_(
-                Book.timeline_year >= params.timeline_year_min,
-                Book.timeline_year_end >= params.timeline_year_min,
-            )
-        )
+        query = query.where(Book.timeline_year >= params.timeline_year_min)
 
     if params.timeline_year_max is not None:
-        query = query.where(
-            or_(
-                Book.timeline_year <= params.timeline_year_max,
-                Book.timeline_year_start <= params.timeline_year_max,
-            )
-        )
+        query = query.where(Book.timeline_year <= params.timeline_year_max)
 
     # Count total
     count_query = select(func.count()).select_from(query.subquery())
