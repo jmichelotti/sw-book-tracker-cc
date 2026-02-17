@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -67,6 +68,20 @@ async def search_books(
             )
         )
     return PaginatedBooks(items=items, total=total, page=params.page, page_size=params.page_size)
+
+
+@router.get("/{book_id}/cover")
+async def get_book_cover(book_id: int, db: AsyncSession = Depends(get_db)):
+    from app.models import Book
+
+    book = await db.get(Book, book_id)
+    if not book or not book.cover_image:
+        raise HTTPException(404, "Cover image not found")
+    return Response(
+        content=book.cover_image,
+        media_type=book.cover_image_content_type or "image/jpeg",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
 
 
 @router.get("/{book_id}", response_model=BookRead)

@@ -16,6 +16,8 @@ class IngestBook(BaseModel):
     page_count: int | None = None
     publication_date: str | None = None
     cover_url: str | None = None
+    cover_image_b64: str | None = None
+    cover_image_content_type: str | None = None
     timeline_year: int | None = None
     timeline_year_start: int | None = None
     timeline_year_end: int | None = None

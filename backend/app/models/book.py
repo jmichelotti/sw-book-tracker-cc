@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Enum, ForeignKey, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -27,6 +27,8 @@ class Book(TimestampMixin, Base):
     page_count: Mapped[int | None] = mapped_column(Integer)
     publication_date: Mapped[str | None] = mapped_column(String(100))
     cover_url: Mapped[str | None] = mapped_column(String(1000))
+    cover_image: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    cover_image_content_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     wookieepedia_url: Mapped[str | None] = mapped_column(String(1000))
 
     canon_or_legends: Mapped[CanonStatus] = mapped_column(

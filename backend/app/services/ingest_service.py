@@ -1,3 +1,4 @@
+import base64
 import logging
 
 from sqlalchemy import select
@@ -66,6 +67,12 @@ async def ingest_books(db: AsyncSession, books: list[IngestBook]):
                     created += 1
 
                 await db.flush()
+
+                # Store cover image if provided as base64
+                if book_data.cover_image_b64:
+                    book.cover_image = base64.b64decode(book_data.cover_image_b64)
+                    book.cover_image_content_type = book_data.cover_image_content_type or "image/jpeg"
+                    book.cover_url = f"/api/v1/books/{book.id}/cover"
 
                 # Link characters with appearance tags (deduplicate by name)
                 if book_data.characters:

@@ -33,18 +33,7 @@ export function BookCard({ book, showAppearanceTag, showMatchedCharacters }: Pro
     <Link to={`/books/${book.id}`}>
       <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
         <CardContent className="p-4 flex gap-3">
-          {book.cover_url ? (
-            <img
-              src={book.cover_url}
-              alt={book.title}
-              className="w-16 h-24 object-cover rounded flex-shrink-0"
-            />
-          ) : (
-            <div className="w-16 h-24 bg-muted rounded flex items-center justify-center flex-shrink-0">
-              <BookOpen className="h-6 w-6 text-muted-foreground" />
-            </div>
-          )}
-          <div className="space-y-2 min-w-0">
+          <div className="space-y-2 min-w-0 flex-1">
             <h3 className="font-semibold leading-tight">{book.title}</h3>
             {book.author_name && (
               <p className="text-sm text-muted-foreground">{book.author_name}</p>
@@ -78,6 +67,17 @@ export function BookCard({ book, showAppearanceTag, showMatchedCharacters }: Pro
               </div>
             )}
           </div>
+          {book.cover_url ? (
+            <img
+              src={book.cover_url}
+              alt={book.title}
+              className="w-16 h-24 object-cover rounded flex-shrink-0"
+            />
+          ) : (
+            <div className="w-16 h-24 bg-muted rounded flex items-center justify-center flex-shrink-0">
+              <BookOpen className="h-6 w-6 text-muted-foreground" />
+            </div>
+          )}
         </CardContent>
       </Card>
     </Link>
