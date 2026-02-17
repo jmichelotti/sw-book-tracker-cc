@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
@@ -11,7 +11,10 @@ import { ReadingStatusToggle } from "@/components/filters/ReadingStatusToggle";
 import { SortControls } from "@/components/filters/SortControls";
 import { YearRangeFilter } from "@/components/filters/YearRangeFilter";
 import { Pagination } from "@/components/filters/Pagination";
+import { ViewModeToggle } from "@/components/filters/ViewModeToggle";
 import { BookCard } from "@/components/BookCard";
+import { TimelineView } from "@/components/timeline/TimelineView";
+import type { HoverMode } from "@/components/timeline/types";
 
 const BOOK_SORT_OPTIONS = [
   { value: "timeline_year", label: "Timeline" },
@@ -19,9 +22,22 @@ const BOOK_SORT_OPTIONS = [
   { value: "publication_date", label: "Published" },
 ];
 
+const HOVER_MODE_KEY = "timeline-hover-mode";
+
 export function CharacterDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const viewMode = (searchParams.get("view") as "card" | "timeline") || "card";
+  const isTimeline = viewMode === "timeline";
+
+  const [hoverMode, setHoverMode] = useState<HoverMode>(() => {
+    return (localStorage.getItem(HOVER_MODE_KEY) as HoverMode) || "title_year";
+  });
+
+  useEffect(() => {
+    localStorage.setItem(HOVER_MODE_KEY, hoverMode);
+  }, [hoverMode]);
 
   const filters: CharacterBookFilters = useMemo(
     () => ({
@@ -35,10 +51,10 @@ export function CharacterDetailPage() {
         : undefined,
       order_by: searchParams.get("order_by") || "timeline_year",
       order_dir: searchParams.get("order_dir") || "asc",
-      page: Number(searchParams.get("page") || 1),
-      page_size: 20,
+      page: isTimeline ? 1 : Number(searchParams.get("page") || 1),
+      page_size: isTimeline ? 500 : 20,
     }),
-    [searchParams]
+    [searchParams, isTimeline]
   );
 
   const { data: character, isLoading } = useQuery({
@@ -68,6 +84,22 @@ export function CharacterDetailPage() {
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
         next.set("page", String(page));
+        return next;
+      });
+    },
+    [setSearchParams]
+  );
+
+  const setViewMode = useCallback(
+    (mode: "card" | "timeline") => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (mode === "card") {
+          next.delete("view");
+        } else {
+          next.set("view", mode);
+        }
+        next.set("page", "1");
         return next;
       });
     },
@@ -127,6 +159,7 @@ export function CharacterDetailPage() {
       <div>
         <h2 className="text-lg font-semibold mb-4">Books</h2>
         <div className="flex flex-wrap items-center gap-3 mb-4">
+          <ViewModeToggle value={viewMode} onChange={setViewMode} />
           <CanonLegendToggle
             value={filters.canon_status}
             onChange={(v) => setFilter("canon_status", v)}
@@ -135,13 +168,15 @@ export function CharacterDetailPage() {
             value={filters.reading_status}
             onChange={(v) => setFilter("reading_status", v)}
           />
-          <SortControls
-            orderBy={filters.order_by!}
-            orderDir={filters.order_dir!}
-            onOrderByChange={(v) => setFilter("order_by", v)}
-            onOrderDirChange={(v) => setFilter("order_dir", v)}
-            sortOptions={BOOK_SORT_OPTIONS}
-          />
+          {!isTimeline && (
+            <SortControls
+              orderBy={filters.order_by!}
+              orderDir={filters.order_dir!}
+              onOrderByChange={(v) => setFilter("order_by", v)}
+              onOrderDirChange={(v) => setFilter("order_dir", v)}
+              sortOptions={BOOK_SORT_OPTIONS}
+            />
+          )}
           <YearRangeFilter
             yearMin={filters.timeline_year_min}
             yearMax={filters.timeline_year_max}
@@ -184,19 +219,29 @@ export function CharacterDetailPage() {
           </p>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {character.books.map((book) => (
-            <BookCard key={book.id} book={book} showAppearanceTag />
-          ))}
-        </div>
+        {isTimeline ? (
+          <TimelineView
+            books={character.books}
+            hoverMode={hoverMode}
+            onHoverModeChange={setHoverMode}
+          />
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {character.books.map((book) => (
+                <BookCard key={book.id} book={book} showAppearanceTag />
+              ))}
+            </div>
 
-        {character.books.length === 0 && (
-          <p className="text-muted-foreground text-center py-8">
-            No books match the current filters.
-          </p>
+            {character.books.length === 0 && (
+              <p className="text-muted-foreground text-center py-8">
+                No books match the current filters.
+              </p>
+            )}
+
+            <Pagination page={character.books_page} totalPages={totalPages} onPageChange={setPage} />
+          </>
         )}
-
-        <Pagination page={character.books_page} totalPages={totalPages} onPageChange={setPage} />
       </div>
     </div>
   );
