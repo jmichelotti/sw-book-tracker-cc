@@ -33,6 +33,7 @@ class BookAppearance(BaseModel):
     owned: bool = False
     timeline_year: int | None = None
     author_name: str | None = None
+    cover_url: str | None = None
     appearance_tag: str | None = None
     model_config = {"from_attributes": True}
 

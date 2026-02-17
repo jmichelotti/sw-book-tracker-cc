@@ -38,6 +38,7 @@ async def ingest_books(db: AsyncSession, books: list[IngestBook]):
                     existing.page_count = book_data.page_count or existing.page_count
                     existing.publication_date = book_data.publication_date or existing.publication_date
                     existing.wookieepedia_url = book_data.url or existing.wookieepedia_url
+                    existing.cover_url = book_data.cover_url or existing.cover_url
                     existing.canon_or_legends = canon
                     existing.timeline_year = book_data.timeline_year or existing.timeline_year
                     existing.timeline_year_start = book_data.timeline_year_start or existing.timeline_year_start
@@ -54,6 +55,7 @@ async def ingest_books(db: AsyncSession, books: list[IngestBook]):
                         page_count=book_data.page_count,
                         publication_date=book_data.publication_date,
                         wookieepedia_url=book_data.url,
+                        cover_url=book_data.cover_url,
                         canon_or_legends=canon,
                         timeline_year=book_data.timeline_year,
                         timeline_year_start=book_data.timeline_year_start,

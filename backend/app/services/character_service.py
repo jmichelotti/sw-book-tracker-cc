@@ -85,6 +85,7 @@ async def get_character_detail(
             Book.reading_status,
             Book.owned,
             Book.timeline_year,
+            Book.cover_url,
             Author.name.label("author_name"),
             book_characters.c.appearance_tag,
         )
@@ -115,6 +116,7 @@ async def get_character_detail(
             Book.reading_status,
             Book.owned,
             Book.timeline_year,
+            Book.cover_url,
             Author.name.label("author_name"),
             book_characters.c.appearance_tag,
         )
@@ -180,6 +182,7 @@ def _book_row_to_dict(row):
         "reading_status": row.reading_status,
         "owned": row.owned,
         "timeline_year": row.timeline_year,
+        "cover_url": row.cover_url,
         "author_name": row.author_name,
         "appearance_tag": row.appearance_tag,
     }

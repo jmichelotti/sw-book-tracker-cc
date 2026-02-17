@@ -101,6 +101,7 @@ export interface BookAppearance {
   owned: boolean;
   timeline_year: number | null;
   author_name: string | null;
+  cover_url: string | null;
   appearance_tag: string | null;
 }
 

@@ -8,6 +8,19 @@ from src.browser import fetch_page_html
 logger = logging.getLogger(__name__)
 
 
+def parse_cover_image(infobox) -> str | None:
+    """Extract the cover image URL from a portable-infobox's <figure class="pi-image">."""
+    if not infobox:
+        return None
+    figure = infobox.find("figure", class_="pi-image")
+    if not figure:
+        return None
+    img = figure.find("img")
+    if not img:
+        return None
+    return img.get("src")
+
+
 def scrape_book_detail(url: str) -> dict:
     """Scrape a single book page for metadata, characters, and description."""
     html = fetch_page_html(url)
@@ -21,6 +34,9 @@ def scrape_book_detail(url: str) -> dict:
     )
     if infobox:
         result.update(_parse_infobox(infobox))
+        cover_url = parse_cover_image(infobox)
+        if cover_url:
+            result["cover_url"] = cover_url
 
     # Parse description from first paragraphs
     content = soup.find("div", class_="mw-parser-output")

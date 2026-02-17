@@ -1,6 +1,6 @@
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Edit, ExternalLink } from "lucide-react";
+import { ArrowLeft, BookOpen, Edit, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { getBook, updateBookOwned, updateBookStatus } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -64,28 +64,43 @@ export function BookDetailPage() {
         </Link>
       </div>
 
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">{book.title}</h1>
-          {book.author_name && (
-            <p className="text-lg text-muted-foreground mt-1">
-              by{" "}
-              {book.author_id ? (
-                <Link to={`/authors/${book.author_id}`} className="underline">
-                  {book.author_name}
-                </Link>
-              ) : (
-                book.author_name
+      <div className="flex items-start gap-6">
+        {book.cover_url ? (
+          <img
+            src={book.cover_url}
+            alt={book.title}
+            className="w-[200px] rounded-lg shadow-md flex-shrink-0 object-cover"
+          />
+        ) : (
+          <div className="w-[200px] h-[300px] bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
+            <BookOpen className="h-12 w-12 text-muted-foreground" />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">{book.title}</h1>
+              {book.author_name && (
+                <p className="text-lg text-muted-foreground mt-1">
+                  by{" "}
+                  {book.author_id ? (
+                    <Link to={`/authors/${book.author_id}`} className="underline">
+                      {book.author_name}
+                    </Link>
+                  ) : (
+                    book.author_name
+                  )}
+                </p>
               )}
-            </p>
-          )}
-        </div>
-        <div className="flex gap-2">
-          <Link to={`/books/${id}/edit`}>
-            <Button variant="outline" size="sm">
-              <Edit className="h-4 w-4 mr-1" /> Edit
-            </Button>
-          </Link>
+            </div>
+            <div className="flex gap-2">
+              <Link to={`/books/${id}/edit`}>
+                <Button variant="outline" size="sm">
+                  <Edit className="h-4 w-4 mr-1" /> Edit
+                </Button>
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
 
