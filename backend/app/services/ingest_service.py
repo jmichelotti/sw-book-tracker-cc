@@ -81,7 +81,8 @@ async def ingest_books(db: AsyncSession, books: list[IngestBook]):
                     )
                     seen_char_ids: set[int] = set()
                     for char_entry in book_data.characters:
-                        char = await get_or_create_character(db, char_entry.name)
+                        char_name = char_entry.name.removesuffix("/Legends")
+                        char = await get_or_create_character(db, char_name)
                         if char.id in seen_char_ids:
                             continue
                         seen_char_ids.add(char.id)
